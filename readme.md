@@ -1,4 +1,4 @@
-﻿#تحلیل عملکرد فروش، لجستیک و رضایت مشتری در پلتفرم  Olist
+﻿**تحلیل عملکرد فروش، لجستیک و رضایت مشتری در پلتفرم  Olist**
 
 
 **۱. تعریف مسئله بیزینسی**
@@ -66,3 +66,18 @@ RFM Segment: سگمنت مشتری بر اساس
 ● طراحی داشبورد تعاملی چندصفحه‌ای
 
 ● انتشار روی Power BI Service
+
+# Data Profiling Report
+
+## Table: `orders`
+
+| Column Name | Data Type | Null % | Cardinality | Sample Value |
+|-------------|-----------|-------:|-------------|--------------|
+| `order_id` | Text | 0% | 99,441 (Unique) | `e481f51cbdc54678b7cc49136f2d6af` |
+| `customer_id` | Text | 0% | 99,441 (Unique) | `9ef432eb6251297304e76186b10a928` |
+| `order_status` | Text | 0% | 8 Values | `delivered`, `shipped`, `canceled`, ... |
+| `order_purchase_timestamp` | DateTime | 0% | — | `2017-10-02 10:56:33` |
+| `order_approved_at` | DateTime | 1% | — | `2017-10-02 11:07:15` |
+| `order_delivered_carrier_date` | DateTime | 2% | — | `2017-10-04 19:55:00` |
+| `order_delivered_customer_date` | DateTime | 3% | — | `2017-10-10 21:25:13` |
+| `order_estimated_delivery_date` | DateTime | 0% | — | `2017-10-18 00:00:00` |
