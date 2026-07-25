@@ -180,26 +180,110 @@ RFM Segment: سگمنت مشتری بر اساس
 
 ---
 
-# 📊 Data Quality Summary
+# 📊 خلاصه کیفیت داده‌ها (Data Quality Summary)
 
-| Table | Missing Values | Data Quality Notes |
-|-------|----------------|--------------------|
-| `orders` | Very Low | High-quality transactional data with a few nullable delivery timestamps for canceled/unavailable orders. |
-| `order_items` | None | Complete transactional data with no missing values. |
-| `customers` | None | Customer identifiers and location fields are fully populated. |
-| `order_payments` | None | Payment information is complete. |
-| `order_reviews` | High in text fields | Review scores are complete, but optional review titles (~88%) and messages (~59%) are frequently missing. |
-| `products` | Low | Approximately 1.85% missing values in category and product attributes; physical dimensions are almost complete. |
-| `sellers` | None | Seller information is complete. |
-| `geolocation` | None | Geographic reference dataset is complete. |
-| `category_name_translation` | None | Translation table is complete, although it contains only 71 translated categories while the products table references 73 categories. |
+| جدول | میزان مقادیر گمشده (Missing Values) | توضیحات کیفیت داده |
+|------|-------------------------------------|---------------------|
+| `orders` | بسیار کم | داده‌های تراکنشی از کیفیت بالایی برخوردار هستند. تنها برخی از ستون‌های مربوط به زمان تحویل برای سفارش‌های لغوشده یا ناموفق مقدار ندارند که طبیعی است. |
+| `order_items` | ندارد | تمامی رکوردها کامل بوده و هیچ مقدار گمشده‌ای در این جدول وجود ندارد. |
+| `customers` | ندارد | اطلاعات شناسه مشتری و مشخصات مکانی به‌صورت کامل ثبت شده است. |
+| `order_payments` | ندارد | اطلاعات مربوط به پرداخت سفارش‌ها کامل بوده و هیچ مقدار گمشده‌ای مشاهده نمی‌شود. |
+| `order_reviews` | زیاد (در ستون‌های متنی) | امتیازدهی کاربران (`review_score`) کامل است، اما عنوان و متن نظرات اختیاری هستند؛ بنابراین حدود **۸۸٪** از عنوان‌ها و **۵۹٪** از متن نظرات مقدار ندارند. |
+| `products` | کم | حدود **۱.۸۵٪** از اطلاعات مربوط به دسته‌بندی و ویژگی‌های محصولات ناقص است، اما مشخصات فیزیکی محصولات تقریباً به‌طور کامل ثبت شده‌اند. |
+| `sellers` | ندارد | اطلاعات فروشندگان کامل بوده و هیچ مقدار گمشده‌ای وجود ندارد. |
+| `geolocation` | ندارد | داده‌های جغرافیایی کامل هستند و تمامی رکوردها دارای اطلاعات مکانی معتبر می‌باشند. |
+| `category_name_translation` | ندارد | جدول ترجمه دسته‌بندی‌ها کامل است، اما تنها **۷۱ دسته‌بندی** را پوشش می‌دهد، در حالی که جدول محصولات شامل **۷۳ دسته‌بندی** است. |
 
-> **Data Quality Assessment**
+> ## 📌 ارزیابی کیفیت داده‌ها (Data Quality Assessment)
 >
-> - ✅ Most tables contain **0% missing values**, making the dataset suitable for BI and analytical modeling.
-> - ⚠️ `order_reviews` contains many missing values in free-text review fields, but these are optional and do not affect quantitative analysis.
-> - ⚠️ `products` has a small percentage of missing product metadata (~1.85%), which can be handled through imputation or an "Unknown" category.
-> - ⚠️ The translation table contains **71 categories**, whereas the products table includes **73 categories**, meaning two product categories have no English translation and should be identified during ETL.
-> - ✅ Primary and foreign keys exhibit high cardinality and are appropriate for building a **Star Schema** in Power BI.
+> - ✅ اکثر جداول دارای **۰٪ مقادیر گمشده** هستند؛ بنابراین این مجموعه‌داده از کیفیت مناسبی برای تحلیل داده، طراحی انبار داده (Data Warehouse) و ایجاد داشبوردهای Power BI برخوردار است.
+>
+> - ⚠️ جدول `order_reviews` دارای مقادیر گمشده زیادی در ستون‌های متنی نظرات است، اما از آنجا که ثبت عنوان و متن نظر اختیاری بوده، این موضوع تأثیری بر تحلیل‌های آماری و شاخص‌های عملکرد (KPI) نخواهد داشت.
+>
+> - ⚠️ در جدول `products` حدود **۱.۸۵٪** از اطلاعات مربوط به دسته‌بندی و مشخصات محصولات ناقص است. این مقادیر می‌توانند در مرحله ETL با مقدار **Unknown** جایگزین شده یا در صورت نیاز تکمیل شوند.
+>
+> - ⚠️ جدول `category_name_translation` تنها شامل **۷۱ ترجمه** است، در حالی که جدول `products` دارای **۷۳ دسته‌بندی** می‌باشد؛ بنابراین دو دسته‌بندی فاقد ترجمه انگلیسی هستند و باید در فرآیند ETL شناسایی و اصلاح شوند.
+>
+> - ✅ کلیدهای اصلی (Primary Keys) و کلیدهای خارجی (Foreign Keys) دارای **Cardinality مناسب** بوده و ساختار داده‌ها برای پیاده‌سازی **Star Schema** در Power BI کاملاً مناسب است.
+>
+> - ✅ به‌طور کلی، این مجموعه‌داده از نظر **Completeness، Consistency و Referential Integrity** کیفیت بالایی داشته و برای انجام تحلیل‌های تجاری (Business Intelligence) و مدل‌سازی داده گزینه‌ای مناسب محسوب می‌شود.
 	- 
 
+<p align="center">
+  <img src="images/01_data_quality.png" width="550" alt="Geolocation Table">
+</p>
+
+# 🧹 پاکسازی داده‌ها (Data Cleaning)
+
+## 📋 پاکسازی جدول `Orders`
+
+### 1️⃣ بررسی و اصلاح نوع داده ستون‌های تاریخ
+
+تمامی ستون‌های مربوط به تاریخ باید از نوع **Date/Time** باشند تا امکان انجام محاسبات زمانی، ایجاد روابط با جدول تاریخ و استفاده از توابع Time Intelligence در Power BI فراهم شود.
+
+**ستون‌های مورد بررسی:**
+
+- `order_purchase_timestamp`
+- `order_approved_at`
+- `order_delivered_carrier_date`
+- `order_delivered_customer_date`
+- `order_estimated_delivery_date`
+
+> ✅ **هدف:** اطمینان از یکپارچگی نوع داده‌ها و جلوگیری از خطاهای محاسباتی در مدل داده.
+
+---
+
+### 2️⃣ ایجاد ستون کلید تاریخ (Date Key)
+
+به دلیل اینکه ستون‌های تاریخ دارای **ساعت (Time)** نیز هستند، امکان ایجاد رابطه مستقیم با جدول تاریخ (Date Dimension) وجود ندارد. بنابراین یک ستون عددی به‌صورت `YYYYMMDD` ایجاد می‌شود.
+
+```DAX
+order_delivered_date_Key =
+orders[order_estimated_delivery_date].[Year] * 10000 +
+orders[order_estimated_delivery_date].[MonthNo] * 100 +
+orders[order_estimated_delivery_date].[Day]
+```
+
+> **هدف:** ایجاد یک کلید عددی برای برقراری ارتباط بین جدول `Orders` و جدول `Dim_Date` بدون تأثیر بخش ساعت (Time).
+
+---
+
+### 3️⃣ ایجاد ستون `is_delivered`
+
+برای تشخیص سریع سفارش‌های تحویل‌شده، یک ستون محاسباتی در **Power Query** ایجاد می‌شود.
+
+```PowerQuery
+= Table.AddColumn(
+    #"Changed Type",
+    "is_delivered",
+    each if [order_status] = "delivered"
+        then 1
+        else 0
+)
+```
+
+> **هدف:** ایجاد یک شاخص دودویی (Binary Flag) جهت فیلتر کردن سفارش‌های تحویل‌شده و استفاده در محاسبات KPIها مانند نرخ تحویل، نرخ تأخیر و تحلیل عملکرد.
+
+---
+
+# 📦 پاکسازی جدول `order_items`
+
+### 1️⃣ کنترل نوع داده‌ها
+
+ابتدا نوع داده تمامی ستون‌ها بررسی و در صورت نیاز اصلاح می‌شود.
+
+| ستون | نوع داده مورد انتظار |
+|------|----------------------|
+| `order_id` | Text |
+| `order_item_id` | Whole Number |
+| `product_id` | Text |
+| `seller_id` | Text |
+| `shipping_limit_date` | Date/Time |
+| `price` | Decimal Number |
+| `freight_value` | Decimal Number |
+
+> ✅ **هدف:** جلوگیری از خطاهای محاسباتی، بهبود عملکرد مدل داده و اطمینان از سازگاری داده‌ها در مراحل ETL و تحلیل.
+
+<p align="center">
+  <img src="images/01_data_control.png" width="550" alt="Geolocation Table">
+</p>
