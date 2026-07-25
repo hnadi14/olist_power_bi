@@ -26,21 +26,27 @@ Business Question  سوال اصلی
 	داشبورد: فروش و سود به تفکیک دسته محصول
 
 **KPI Dictionary:**
+
 	Total Revenue: مجموع درآمد از آیتم‌های فروخته‌شده
 		فرمول:	SUM(price + freight_value)	
 هدف: اندازه‌گیری رشد کلی
+
 AOV: میانگین ارزش هر سفارش
 	فرمول:  Total Revenue ÷ Total Orders
 هدف: سنجش رفتار خرید
+	
 	Delivery Delay: تاخیر نسبت به تخمین
 		فرمول: تاریخ تحویل واقعی – تخمینی
 هدف: سنجش کیفیت لجستیک
+
 Review Score Avg: میانگین امتیاز نظرات
 	فرمول: AVG(review_score)
 هدف: سنجش رضایت مشتری
+	
 	Repeat Purchase Rate: درصد مشتریان با بیش از یک خرید
 		فرمول: مشتریان تکراری ÷ کل مشتریان
 هدف: سنجش وفاداری
+
 RFM Segment: سگمنت مشتری بر اساس
 فرمول: Recency/Frequency/Monetary	
 هدف: هدف‌گذاری بازاریابی
