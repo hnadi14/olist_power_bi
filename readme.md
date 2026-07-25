@@ -285,5 +285,634 @@ orders[order_estimated_delivery_date].[Day]
 > ✅ **هدف:** جلوگیری از خطاهای محاسباتی، بهبود عملکرد مدل داده و اطمینان از سازگاری داده‌ها در مراحل ETL و تحلیل.
 
 <p align="center">
-  <img src="images/01_data_control.png" width="550" alt="Geolocation Table">
+  <img src="images/02_Data_control.png" width="550" alt="Geolocation Table">
 </p>
+
+# 🧹 ادامه پاکسازی داده‌ها (Data Cleaning)
+
+# 📦 پاکسازی جدول `order_items`
+
+### 2️⃣ ایجاد ستون `total_item_value`
+
+برای محاسبه مبلغ نهایی هر آیتم سفارش، هزینه ارسال به قیمت کالا اضافه می‌شود.
+
+```PowerQuery
+= Table.AddColumn(
+    #"Changed Type",
+    "total_item_value",
+    each [price] + [freight_value]
+)
+```
+
+> **هدف:** ایجاد یک ستون آماده برای محاسبه **Revenue**، **Average Order Value (AOV)** و سایر شاخص‌های مالی بدون نیاز به انجام محاسبات تکراری در DAX.
+
+---
+
+# 📦 پاکسازی جدول `Products`
+
+### 1️⃣ ترجمه نام دسته‌بندی محصولات
+
+نام دسته‌بندی محصولات در جدول `products` به زبان پرتغالی ثبت شده است. برای نمایش مناسب در داشبورد، این مقادیر با استفاده از جدول `category_name_translation` ترجمه می‌شوند.
+
+**روش انجام کار**
+
+- استفاده از **Merge Queries**
+- جدول مرجع: `category_name_translation`
+- ستون ارتباط:
+  - `product_category_name`
+- ستون خروجی:
+  - `product_category_name_english`
+
+> **هدف:** استفاده از نام‌های انگلیسی در گزارش‌ها و افزایش خوانایی داشبورد.
+
+---
+
+### 2️⃣ جایگزینی مقادیر Null
+
+پس از انجام Merge ممکن است برخی دسته‌بندی‌ها فاقد ترجمه باشند.
+
+بنابراین مقدارهای `Null` با مقدار زیر جایگزین می‌شوند:
+
+```text
+Other
+```
+
+> **هدف:** جلوگیری از نمایش مقادیر خالی در گزارش‌ها و گروه‌بندی صحیح محصولات فاقد ترجمه.
+
+---
+
+# ⭐ پاکسازی جدول `order_reviews`
+
+### ایجاد ستون `has_comment`
+
+برای مشخص شدن اینکه مشتری متن نظر ثبت کرده است یا خیر، یک ستون منطقی ایجاد می‌شود.
+
+```PowerQuery
+= Table.AddColumn(
+    #"Changed Type",
+    "has_comment",
+    each if [review_comment_message] = null
+        then false
+        else true
+)
+```
+
+> **هدف:** تحلیل نرخ مشارکت مشتریان در ثبت نظر، بررسی رفتار کاربران و محاسبه KPIهایی مانند **Review Participation Rate**.
+
+---
+
+# 🌍 پاکسازی جدول `geolocation`
+
+### حذف رکوردهای تکراری Zip Code
+
+در این جدول، هر کد پستی ممکن است چندین بار با مختصات بسیار نزدیک ثبت شده باشد. برای کاهش حجم داده و بهبود عملکرد مدل، داده‌ها تجمیع می‌شوند.
+
+**Group By بر اساس:**
+
+```text
+geolocation_zip_code_prefix
+```
+
+**محاسبات:**
+
+| ستون | عملیات |
+|------|---------|
+| `geolocation_lat` | Average |
+| `geolocation_lng` | Average |
+| `geolocation_city` | First |
+| `geolocation_state` | First |
+
+> **هدف:** ایجاد یک رکورد یکتا برای هر کد پستی، کاهش حجم مدل داده و افزایش سرعت پردازش.
+
+---
+
+# 💳 ساخت جدول `Payments Summary`
+
+یک سفارش می‌تواند از چند روش پرداخت به‌صورت هم‌زمان استفاده کند؛ بنابراین لازم است اطلاعات پرداخت در سطح سفارش تجمیع شوند.
+
+### مراحل انجام کار
+
+1. ایجاد **Reference** از جدول `order_payments`
+2. اجرای **Group By** بر اساس:
+
+```text
+order_id
+```
+
+3. انجام محاسبات زیر:
+
+| ستون | عملیات |
+|------|---------|
+| `payment_value` | Sum |
+| `payment_installments` | Max |
+
+> **هدف:** ایجاد یک جدول خلاصه پرداخت در سطح سفارش برای جلوگیری از ایجاد روابط چندبه‌چند (Many-to-Many)، کاهش پیچیدگی مدل و تسهیل محاسبات مالی.
+
+---
+
+# 🏛️ طبقه‌بندی جداول Fact و Dimension
+
+## 📌 Fact Tables
+
+| جدول | توضیحات |
+|------|---------|
+| `order_items` | جدول اصلی تراکنش‌ها شامل اطلاعات فروش، مبلغ کالا و هزینه ارسال |
+| `payments_summary` | خلاصه اطلاعات پرداخت هر سفارش |
+| `order_reviews` | اطلاعات امتیاز و نظرات مشتریان |
+
+---
+
+## 📌 Dimension Tables
+
+| جدول | توضیحات |
+|------|---------|
+| `orders` | اطلاعات سفارش، وضعیت سفارش و تاریخ‌های مختلف |
+| `customers` | اطلاعات مشتریان |
+| `products` | اطلاعات محصولات و دسته‌بندی‌ها |
+| `sellers` | اطلاعات فروشندگان |
+| `geolocation` | اطلاعات جغرافیایی مربوط به کدهای پستی |
+| `category_name_translation` | جدول ترجمه دسته‌بندی محصولات |
+| `Dim_Date` | جدول تاریخ برای تحلیل‌های زمانی (در مراحل بعد ایجاد می‌شود) |
+
+> **نتیجه:** این طبقه‌بندی، پایه‌ای مناسب برای طراحی یک **Star Schema** استاندارد در Power BI فراهم می‌کند که موجب بهبود عملکرد، سادگی مدل و افزایش سرعت تحلیل داده‌ها خواهد شد.
+
+<p align="center">
+  <img src="images/03_dim_table.png" width="550" alt="Geolocation Table">
+</p>
+
+<p align="center">
+  <img src="images/04_fact_tables.png" width="550" alt="Geolocation Table">
+</p>
+
+
+# 🔗 ارتباط بین جداول (Table Relationships)
+
+| از (1) | به (N) | کلید اتصال | کاردینالیتی | جهت فیلتر | وضعیت |
+|---------|---------|------------|-------------|------------|--------|
+| `orders` | `fact_order_items` | `order_id` | یک به چند (1:N) | Single | ✅ فعال |
+| `customers` | `orders` | `customer_id` | یک به چند (1:N) | Single | ✅ فعال |
+| `products` | `fact_order_items` | `product_id` | یک به چند (1:N) | Single | ✅ فعال |
+| `sellers` | `fact_order_items` | `seller_id` | یک به چند (1:N) | Single | ✅ فعال |
+| `Dim_Date` | `orders` (Purchase Date) | `Date` | یک به چند (1:N) | Single | ✅ فعال |
+| `Dim_Date` | `orders` (Delivery Date) | `Date` | یک به چند (1:N) | Single | ❌ غیرفعال *(رابطه جایگزین برای تحلیل زمان تحویل)* |
+| `orders` | `fact_payments_summary` | `order_id` | یک به چند (1:N) | Single | ✅ فعال |
+| `orders` | `fact_reviews` | `order_id` | یک به چند (1:N) | Single | ✅ فعال |
+| `geolocation` | `customers` | `zip_code_prefix` | یک به چند (1:N) | Single | ✅ فعال |
+| `geolocation` | `sellers` | `zip_code_prefix` | یک به چند (1:N) | Single | ❌ غیرفعال *(در صورت نیاز با USERELATIONSHIP فعال می‌شود)* |
+
+---
+
+# 📌 نکات طراحی روابط
+
+- تمامی روابط از نوع **یک به چند (1:N)** طراحی شده‌اند که مطابق با استانداردهای **Star Schema** است.
+- جهت فیلتر (**Cross Filter Direction**) در تمامی روابط روی **Single** قرار گرفته است تا از ایجاد مسیرهای مبهم (Ambiguous Relationships) جلوگیری شود.
+- تنها **یک رابطه فعال** بین جدول `Dim_Date` و جدول `orders` وجود دارد (تاریخ خرید). رابطه مربوط به **تاریخ تحویل** به‌صورت غیرفعال تعریف شده و در صورت نیاز از تابع `USERELATIONSHIP()` در DAX استفاده می‌شود.
+- رابطه بین `geolocation` و `sellers` نیز به‌صورت غیرفعال ایجاد شده تا از ایجاد مسیرهای فیلتر چندگانه جلوگیری شود.
+
+---
+
+# ⭐ دیاگرام مدل داده (Star Schema)
+
+```mermaid
+erDiagram
+
+    DIM_DATE {
+        Date Date
+        Year int
+        Quarter int
+        Month int
+        Day int
+    }
+
+    CUSTOMERS {
+        string customer_id PK
+        string customer_unique_id
+        string customer_city
+        string customer_state
+    }
+
+    PRODUCTS {
+        string product_id PK
+        string product_category
+    }
+
+    SELLERS {
+        string seller_id PK
+        string seller_city
+        string seller_state
+    }
+
+    GEOLOCATION {
+        int zip_code_prefix PK
+        decimal latitude
+        decimal longitude
+    }
+
+    ORDERS {
+        string order_id PK
+        string customer_id FK
+        date purchase_date
+        date delivery_date
+        string order_status
+    }
+
+    FACT_ORDER_ITEMS {
+        string order_id FK
+        string product_id FK
+        string seller_id FK
+        decimal total_item_value
+    }
+
+    FACT_PAYMENTS_SUMMARY {
+        string order_id FK
+        decimal payment_value
+        int payment_installments
+    }
+
+    FACT_REVIEWS {
+        string order_id FK
+        int review_score
+        boolean has_comment
+    }
+
+    CUSTOMERS ||--o{ ORDERS : places
+    ORDERS ||--o{ FACT_ORDER_ITEMS : contains
+    PRODUCTS ||--o{ FACT_ORDER_ITEMS : sold
+    SELLERS ||--o{ FACT_ORDER_ITEMS : supplies
+    ORDERS ||--o{ FACT_PAYMENTS_SUMMARY : pays
+    ORDERS ||--o{ FACT_REVIEWS : receives
+    DIM_DATE ||--o{ ORDERS : purchase_date
+    GEOLOCATION ||--o{ CUSTOMERS : location
+```
+
+---
+
+## 📌 ویژگی‌های مدل
+
+- ⭐ ساختار کاملاً منطبق با **Star Schema** است.
+- ⭐ جداول Fact در مرکز مدل قرار گرفته‌اند.
+- ⭐ جداول Dimension اطلاعات توصیفی را نگهداری می‌کنند.
+- ⭐ روابط همگی از نوع **1:N** و با **Single Filter Direction** هستند.
+- ⭐ استفاده از کلیدهای یکتا باعث افزایش سرعت فشرده‌سازی (Compression) و عملکرد موتور VertiPaq می‌شود.
+- ⭐ مدل برای توسعه KPIها، Time Intelligence و تحلیل‌های پیشرفته در Power BI بهینه شده است.
+
+<p align="center">
+  <img src="images/05_diagram.png" width="550" alt="Geolocation Table">
+</p>
+
+# 📊 متریک‌ها و KPIهای پایه (Core Metrics & KPIs)
+
+در این بخش، مهم‌ترین Measureهای موردنیاز برای تحلیل عملکرد فروش، رفتار مشتریان و تحلیل‌های زمانی در Power BI ایجاد می‌شوند.
+
+---
+
+# 💰 کل درآمد (Total Revenue)
+
+محاسبه مجموع مبلغ فروش کالا به همراه هزینه ارسال.
+
+```DAX
+Total Revenue =
+SUM(fact_order_items[total_item_value])
+```
+
+> **کاربرد:** مهم‌ترین شاخص مالی پروژه که در اکثر داشبوردها و KPIها مورد استفاده قرار می‌گیرد.
+
+---
+
+# 🛒 تعداد سفارش‌ها (Total Orders)
+
+تعداد یکتای سفارش‌های ثبت‌شده.
+
+```DAX
+Total Orders =
+DISTINCTCOUNT(dim_orders[order_id])
+```
+
+> **کاربرد:** نمایش حجم سفارش‌ها و محاسبه بسیاری از شاخص‌های فروش.
+
+---
+
+# 📦 تعداد کالاهای فروخته‌شده (Total Units Sold)
+
+تعداد کل آیتم‌های فروخته‌شده.
+
+```DAX
+Total Units Sold =
+COUNTROWS(fact_order_items)
+```
+
+> **کاربرد:** تحلیل حجم فروش محصولات و مقایسه میزان فروش در بازه‌های زمانی مختلف.
+
+---
+
+# 💵 میانگین ارزش هر سفارش (Average Order Value)
+
+```DAX
+AOV =
+DIVIDE([Total Revenue], [Total Orders])
+```
+
+> **کاربرد:** بررسی میانگین مبلغ هر سفارش و تحلیل رفتار خرید مشتریان.
+
+---
+
+# ⭐ میانگین امتیاز مشتریان
+
+```DAX
+Avg Review Score =
+AVERAGE(fact_reviews[review_score])
+```
+
+> **کاربرد:** سنجش میزان رضایت مشتریان از محصولات و خدمات.
+
+---
+
+# 🚚 میانگین زمان تحویل سفارش
+
+```DAX
+Avg Delivery Time (Days) =
+AVERAGEX(
+    FILTER(
+        dim_orders,
+        dim_orders[order_status] = "delivered"
+    ),
+    DATEDIFF(
+        dim_orders[order_purchase_timestamp],
+        dim_orders[order_delivered_customer_date],
+        DAY
+    )
+)
+```
+
+> **کاربرد:** اندازه‌گیری متوسط زمان تحویل سفارش و ارزیابی عملکرد لجستیک.
+
+---
+
+# ⏳ میزان تأخیر تحویل سفارش
+
+اختلاف بین تاریخ وعده داده‌شده و تاریخ واقعی تحویل.
+
+```DAX
+Delivery Delay (Days) =
+AVERAGEX(
+    FILTER(
+        dim_orders,
+        NOT ISBLANK(dim_orders[order_delivered_customer_date])
+    ),
+    DATEDIFF(
+        dim_orders[order_estimated_delivery_date],
+        dim_orders[order_delivered_customer_date],
+        DAY
+    )
+)
+```
+
+> **تفسیر نتایج**
+>
+> - مقدار منفی → سفارش زودتر از موعد تحویل شده است.
+> - مقدار صفر → سفارش دقیقاً در موعد مقرر تحویل شده است.
+> - مقدار مثبت → سفارش با تأخیر تحویل شده است.
+
+---
+
+# ⚠️ درصد سفارش‌های دارای تأخیر
+
+```DAX
+Late Delivery Rate =
+DIVIDE(
+    CALCULATE(
+        COUNTROWS(dim_orders),
+        dim_orders[order_delivered_customer_date] >
+        dim_orders[order_estimated_delivery_date]
+    ),
+    CALCULATE(
+        COUNTROWS(dim_orders),
+        NOT ISBLANK(dim_orders[order_delivered_customer_date])
+    )
+)
+```
+
+> **کاربرد:** یکی از مهم‌ترین KPIهای عملکرد بخش ارسال سفارش‌ها.
+
+---
+
+# 👥 تحلیل RFM (Recency, Frequency, Monetary)
+
+## ایجاد جدول پایه RFM
+
+```DAX
+_RFM_Base =
+SUMMARIZE(
+    dim_customers,
+    dim_customers[customer_unique_id],
+
+    "Last Purchase Date",
+    CALCULATE(
+        MAX(dim_orders[order_purchase_timestamp])
+    ),
+
+    "Frequency",
+    CALCULATE(
+        DISTINCTCOUNT(dim_orders[order_id])
+    ),
+
+    "Monetary",
+    CALCULATE(
+        SUM(fact_order_items[total_item_value])
+    )
+)
+```
+
+> **هدف:** محاسبه سه شاخص اصلی RFM برای هر مشتری به‌منظور تحلیل ارزش مشتریان و بخش‌بندی آن‌ها.
+
+---
+
+# 🏆 تعیین سگمنت مشتریان
+
+```DAX
+RFM Segment =
+VAR R = [R_Score]
+VAR F = [F_Score]
+
+RETURN
+SWITCH(
+    TRUE(),
+    R >= 4 && F >= 4, "Champions",
+    R >= 3 && F >= 3, "Loyal Customers",
+    R >= 4 && F <= 2, "New Customers",
+    R <= 2 && F >= 4, "At Risk",
+    R <= 2 && F <= 2, "Lost",
+    "Need Attention"
+)
+```
+
+| سگمنت | توضیح |
+|--------|--------|
+| Champions | بهترین و ارزشمندترین مشتریان |
+| Loyal Customers | مشتریان وفادار |
+| New Customers | مشتریان جدید |
+| At Risk | مشتریان در معرض ریزش |
+| Lost | مشتریان از دست‌رفته |
+| Need Attention | مشتریانی که نیاز به توجه بیشتر دارند |
+
+---
+
+# 📅 تحلیل‌های زمانی (Time Intelligence)
+
+## درآمد از ابتدای سال (YTD)
+
+```DAX
+Revenue YTD =
+TOTALYTD(
+    [Total Revenue],
+    Dim_Date[Date]
+)
+```
+
+---
+
+## درآمد سال گذشته (Previous Year)
+
+```DAX
+Revenue PY =
+CALCULATE(
+    [Total Revenue],
+    SAMEPERIODLASTYEAR(Dim_Date[Date])
+)
+```
+
+---
+
+## نرخ رشد سالانه درآمد (YoY Growth)
+
+```DAX
+Revenue YoY % =
+DIVIDE(
+    [Total Revenue] - [Revenue PY],
+    [Revenue PY]
+)
+```
+
+---
+
+## درآمد از ابتدای ماه (MTD)
+
+```DAX
+Revenue MTD =
+TOTALMTD(
+    [Total Revenue],
+    Dim_Date[Date]
+)
+```
+
+---
+
+## میانگین متحرک سه‌ماهه درآمد
+
+```DAX
+Rolling 3-Month Avg Revenue =
+AVERAGEX(
+    DATESINPERIOD(
+        Dim_Date[Date],
+        LASTDATE(Dim_Date[Date]),
+        -3,
+        MONTH
+    ),
+    [Total Revenue]
+)
+```
+
+> **کاربرد:** هموارسازی نوسانات فروش و نمایش روند واقعی درآمد.
+
+---
+
+# 📈 تحلیل Cohort
+
+## تعیین ماه اولین خرید هر مشتری
+
+*(Calculated Column در جدول `dim_customers`)*
+
+```DAX
+Cohort Month =
+CALCULATE(
+    MIN(dim_orders[order_purchase_timestamp]),
+    ALLEXCEPT(
+        dim_customers,
+        dim_customers[customer_unique_id]
+    )
+)
+```
+
+---
+
+## شاخص Cohort
+
+```DAX
+Cohort Index =
+DATEDIFF(
+    RELATED(dim_customers[Cohort Month]),
+    dim_orders[order_purchase_timestamp],
+    MONTH
+) + 1
+```
+
+---
+
+## تعداد مشتریان فعال در هر Cohort
+
+```DAX
+Active Customers in Cohort =
+DISTINCTCOUNT(dim_orders[customer_id])
+```
+
+> **کاربرد:** تحلیل نرخ حفظ مشتریان (Retention) در ماه‌های پس از اولین خرید.
+
+---
+
+# 💎 ارزش طول عمر مشتری (Customer Lifetime Value)
+
+## CLV تاریخی
+
+```DAX
+CLV (Historical) =
+CALCULATE(
+    SUM(fact_order_items[total_item_value]),
+    ALLEXCEPT(
+        dim_customers,
+        dim_customers[customer_unique_id]
+    )
+)
+```
+
+---
+
+## CLV تخمینی
+
+```DAX
+CLV (Estimated) =
+VAR AvgOrderValue =
+    [AOV]
+
+VAR AvgPurchaseFrequency =
+    DIVIDE(
+        [Total Orders],
+        DISTINCTCOUNT(dim_customers[customer_unique_id])
+    )
+
+VAR EstimatedLifespanYears = 2
+
+RETURN
+AvgOrderValue *
+AvgPurchaseFrequency *
+EstimatedLifespanYears
+```
+
+> **کاربرد:** تخمین ارزش مالی هر مشتری در طول دوره همکاری و شناسایی مشتریان با بیشترین ارزش برای کسب‌وکار.
+
+---
+
+# 📌 جمع‌بندی
+
+در این مرحله، مجموعه‌ای از KPIها و Measureهای کلیدی برای تحلیل عملکرد فروش، رفتار مشتریان، تحلیل زمانی، بخش‌بندی مشتریان (RFM)، تحلیل Cohort و برآورد ارزش طول عمر مشتری (CLV) ایجاد شد. این متریک‌ها هسته اصلی داشبوردهای مدیریتی و تحلیلی پروژه را تشکیل می‌دهند و مبنای تصمیم‌گیری در حوزه فروش، بازاریابی و مدیریت ارتباط با مشتری خواهند بود.
+
+
