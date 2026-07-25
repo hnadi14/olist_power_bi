@@ -201,3 +201,5 @@ RFM Segment: سگمنت مشتری بر اساس
 > - ⚠️ `products` has a small percentage of missing product metadata (~1.85%), which can be handled through imputation or an "Unknown" category.
 > - ⚠️ The translation table contains **71 categories**, whereas the products table includes **73 categories**, meaning two product categories have no English translation and should be identified during ETL.
 > - ✅ Primary and foreign keys exhibit high cardinality and are appropriate for building a **Star Schema** in Power BI.
+	- 
+
