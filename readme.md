@@ -437,11 +437,11 @@ order_id
 > **نتیجه:** این طبقه‌بندی، پایه‌ای مناسب برای طراحی یک **Star Schema** استاندارد در Power BI فراهم می‌کند که موجب بهبود عملکرد، سادگی مدل و افزایش سرعت تحلیل داده‌ها خواهد شد.
 
 <p align="center">
-  <img src="images/03_dim_table.png" width="550" alt="Geolocation Table">
+  <img src="images/03_dim_table.png" width="250" alt="Geolocation Table">
 </p>
 
 <p align="center">
-  <img src="images/04_fact_tables.png" width="550" alt="Geolocation Table">
+  <img src="images/04_fact_tables.png" width="250" alt="Geolocation Table">
 </p>
 
 
@@ -469,83 +469,6 @@ order_id
 - تنها **یک رابطه فعال** بین جدول `Dim_Date` و جدول `orders` وجود دارد (تاریخ خرید). رابطه مربوط به **تاریخ تحویل** به‌صورت غیرفعال تعریف شده و در صورت نیاز از تابع `USERELATIONSHIP()` در DAX استفاده می‌شود.
 - رابطه بین `geolocation` و `sellers` نیز به‌صورت غیرفعال ایجاد شده تا از ایجاد مسیرهای فیلتر چندگانه جلوگیری شود.
 
----
-
-# ⭐ دیاگرام مدل داده (Star Schema)
-
-```mermaid
-erDiagram
-
-    DIM_DATE {
-        Date Date
-        Year int
-        Quarter int
-        Month int
-        Day int
-    }
-
-    CUSTOMERS {
-        string customer_id PK
-        string customer_unique_id
-        string customer_city
-        string customer_state
-    }
-
-    PRODUCTS {
-        string product_id PK
-        string product_category
-    }
-
-    SELLERS {
-        string seller_id PK
-        string seller_city
-        string seller_state
-    }
-
-    GEOLOCATION {
-        int zip_code_prefix PK
-        decimal latitude
-        decimal longitude
-    }
-
-    ORDERS {
-        string order_id PK
-        string customer_id FK
-        date purchase_date
-        date delivery_date
-        string order_status
-    }
-
-    FACT_ORDER_ITEMS {
-        string order_id FK
-        string product_id FK
-        string seller_id FK
-        decimal total_item_value
-    }
-
-    FACT_PAYMENTS_SUMMARY {
-        string order_id FK
-        decimal payment_value
-        int payment_installments
-    }
-
-    FACT_REVIEWS {
-        string order_id FK
-        int review_score
-        boolean has_comment
-    }
-
-    CUSTOMERS ||--o{ ORDERS : places
-    ORDERS ||--o{ FACT_ORDER_ITEMS : contains
-    PRODUCTS ||--o{ FACT_ORDER_ITEMS : sold
-    SELLERS ||--o{ FACT_ORDER_ITEMS : supplies
-    ORDERS ||--o{ FACT_PAYMENTS_SUMMARY : pays
-    ORDERS ||--o{ FACT_REVIEWS : receives
-    DIM_DATE ||--o{ ORDERS : purchase_date
-    GEOLOCATION ||--o{ CUSTOMERS : location
-```
-
----
 
 ## 📌 ویژگی‌های مدل
 
