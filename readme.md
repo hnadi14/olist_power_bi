@@ -864,3 +864,6 @@ EstimatedLifespanYears
 - نمایش روندها با رنگ‌های سبز و قرمز
 - بدون شلوغی و عناصر غیرضروری
 
+<p align="center">
+  <img src="images/07_Executive Overview.png" width="550" alt="Geolocation Table">
+</p>
