@@ -865,5 +865,6 @@ EstimatedLifespanYears
 - بدون شلوغی و عناصر غیرضروری
 
 <p align="center">
-  <img src="images/07_Executive Overview.png" width="550" alt="Geolocation Table">
+  <img src="images/07_Executive_Overview.PNG" width="550" alt="Executive Overview">
 </p>
+
